@@ -1,14 +1,22 @@
+from datetime import datetime, timedelta
 import requests
-from datetime import date
+
 
 url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
-response = requests.get(url)
-today_str = str(date.today())  # Gives '2026-11-09'
-events = response.json()
+response = requests.get(url, timeout=10)
+events: list[dict] = response.json()
+
+today = datetime.today().date()
+tomorrow = today + timedelta(days=1)
 
 for event in events:
-    if event.get("impact") == "High" and event.get("date").startswith(today_str):
-        print(event.get("country"), event.get("title"), event.get("date"))
-    else:
-        print("no news")
+    date_str = event.get("date")
+    if not date_str:
+        continue
 
+    dt = datetime.fromisoformat(date_str)
+    local_dt = dt.astimezone()
+
+    if event.get("impact") == "High" and local_dt.date() in (today, tomorrow):
+        clean_time = local_dt.strftime("%a, %d %b | %I:%M %p")
+        print(f"{event.get('country')} | {event.get('title')} | {clean_time}")
